@@ -6,18 +6,33 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	ct "github.com/daviddengcn/go-colortext"
 	"github.com/spf13/cobra"
 )
 
+// vriables for flags.
+var (
+	STARTDIRFLAG, DELIM string
+	FLAGALL             bool
+	FILES, DIRS         int
+)
+
+func checkOS() {
+	if runtime.GOOS == "windows" {
+		DELIM = `\`
+	}
+	DELIM = `/`
+}
+
 // split full path, call building branch and
 // return buit branch and name of current directory
 func buildTree(path string) (*bytes.Buffer, string) {
-	s := strings.Split(path, "/")
+	s := strings.Split(path, DELIM)
 	b := buildBranch(s)
-	return b, s[len(s)-1]
+	return b, filepath.Base(path)
 }
 
 // exchange full path for spaces and separator
@@ -68,21 +83,9 @@ func tree(path string) {
 	}
 }
 
-// vriables for flags.
-var (
-	STARTDIRFLAG string
-	FLAGALL      bool
-	FILES, DIRS  int
-)
-
-// return name of start directory without full path
-func rootName(file string) string {
-	s := strings.Split(file, "/")
-	return s[len(s)-1]
-}
-
 // preparing and start tree
 func init() {
+	checkOS()
 	root := &cobra.Command{
 		Use: "mytree",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -94,7 +97,7 @@ func init() {
 			}
 			// show start directiory on the top of tree
 			ct.Foreground(ct.Blue, true)
-			fmt.Println(rootName(STARTDIRFLAG))
+			fmt.Println(filepath.Base(STARTDIRFLAG))
 			ct.ResetColor()
 			tree(".")
 		},
