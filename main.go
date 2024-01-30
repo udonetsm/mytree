@@ -87,7 +87,8 @@ func tree(path string) {
 func init() {
 	checkOS()
 	root := &cobra.Command{
-		Use: "mytree",
+		Use:  "mytree",
+		Long: "Defaultly the program make tree for home directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			// switch to the start directory otherwise,
 			// output will be beside the middle of terminal
