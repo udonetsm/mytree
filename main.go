@@ -23,8 +23,9 @@ var (
 func checkOS() {
 	if runtime.GOOS == "windows" {
 		DELIM = `\`
+	} else {
+		DELIM = `/`
 	}
-	DELIM = `/`
 }
 
 // split full path, call building branch and
