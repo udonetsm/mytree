@@ -28,27 +28,26 @@ func checkOS() {
 	}
 }
 
-// split full path, call building branch and
-// return buit branch and name of current directory
-func buildTree(path string) (*bytes.Buffer, string) {
-	s := strings.Split(path, DELIM)
-	b := buildBranch(s)
-	return b, filepath.Base(path)
-}
-
 // exchange full path for spaces and separator
-func buildBranch(s []string) *bytes.Buffer {
-	b := new(bytes.Buffer)
-	for i := 0; i < len(s)-1; i++ {
-		b.WriteString("|  ")
+func buildBranch(path string) (*bytes.Buffer, string) {
+	buffer := new(bytes.Buffer)
+	piecesOfPath := strings.Split(path, DELIM)
+	for i := 0; i < len(piecesOfPath)-1; i++ {
+		buffer.WriteString("|  ")
 	}
-	return b
+	return buffer, path
 }
 
 // the function shows new branch
-func outputBranch(separator *bytes.Buffer, name string, color ct.Color, brightness bool) {
+func outputBranch(separator *bytes.Buffer, name string, isDir bool) {
 	separator.WriteString("|___" + name)
-	ct.Foreground(color, brightness)
+	var color ct.Color
+	if isDir {
+		color = ct.Blue
+	} else {
+		color = ct.None
+	}
+	ct.Foreground(color, isDir)
 	fmt.Println(separator.String())
 	ct.ResetColor()
 }
@@ -56,10 +55,10 @@ func outputBranch(separator *bytes.Buffer, name string, color ct.Color, brightne
 func tree(path string) {
 	fs, _ := os.ReadDir(path)
 	// get spaces instead of full path
-	separator, name := buildTree(path)
+	separator, name := buildBranch(path)
 	if name == "." {
 	} else {
-		outputBranch(separator, name, ct.Blue, true)
+		outputBranch(separator, name, true)
 		// increment amount of directory
 		DIRS++
 	}
@@ -76,8 +75,8 @@ func tree(path string) {
 			// if current element is a regular file, should
 			// get spaces with separator instead of full path
 			// and single name of directory
-			separator, name := buildTree(filepath.Join(path, v.Name()))
-			outputBranch(separator, name, ct.White, false)
+			separator, name := buildBranch(filepath.Join(path, v.Name()))
+			defer outputBranch(separator, name, false)
 			// increment amount of flags
 			FILES++
 		}
