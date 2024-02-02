@@ -39,30 +39,33 @@ func buildBranch(path string, v os.DirEntry) *bytes.Buffer {
 }
 
 // the function shows new branch
-func outputBranch(separator *bytes.Buffer, name string, isDir bool) {
+func outputBranch(separator *bytes.Buffer, name string, v os.DirEntry) {
 	separator.WriteString(name)
 	var color ct.Color
-	if isDir {
+	bright := false
+	if v == nil {
 		color = ct.Blue
+		bright = true
 	} else {
 		color = ct.None
 	}
-	ct.Foreground(color, isDir)
+	ct.Foreground(color, bright)
 	fmt.Println(separator.String())
 	ct.ResetColor()
 }
 
 func tree(path string) {
 	fs, _ := os.ReadDir(path)
+	var v os.DirEntry
 	// get spaces instead of full path
-	separator := buildBranch(path, nil)
+	separator := buildBranch(path, v)
 	if filepath.Base(path) == "." {
 	} else {
-		outputBranch(separator, "|__"+filepath.Base(path), true)
+		outputBranch(separator, "|__ "+fmode(path)+filepath.Base(path), v)
 		// increment amount of directory
 		DIRS++
 	}
-	for _, v := range fs {
+	for _, v = range fs {
 		// File may be hidden. The checking finds out if the file
 		// is hidden and hide it from output if flag --all is upset
 		if strings.HasPrefix(v.Name(), ".") && !FLAGALL {
@@ -71,26 +74,49 @@ func tree(path string) {
 			// if current element is a directory, should
 			// call this function recursively with path to the element.
 			tree(filepath.Join(path, v.Name()))
-		} else if DIRONLY {
-			continue
 		} else {
-			var mode string
-			if MODE {
-				file, err := v.Info()
-				if err != nil {
-					log.Fatal(err)
-				}
-				mode = "[" + file.Mode().String() + "]"
+			if DIRONLY {
+				continue
 			}
 			// if current element is a regular file, should
 			// get spaces with separator instead of full path
 			// and single name of directory
 			separator = buildBranch(filepath.Join(path, v.Name()), v)
-			defer outputBranch(separator, "|__"+mode+v.Name(), false)
+			defer outputBranch(separator, "|__ "+fmode(v)+v.Name(), v)
 			// increment amount of flags
 			FILES++
 		}
 	}
+}
+
+func fmode(v interface{}) (mode string) {
+	if MODE {
+		switch T := v.(type) {
+		case os.DirEntry:
+			info, err := T.Info()
+			if err != nil {
+				mode = ""
+				return
+			}
+			mode = "[" + info.Mode().String() + "] "
+			return
+		case string:
+			file, err := os.OpenFile(T, os.O_RDONLY, 7777)
+			defer file.Close()
+			if err != nil {
+				mode = ""
+				return
+			}
+			info, err := file.Stat()
+			if err != nil {
+				mode = ""
+				return
+			}
+			mode = "[" + info.Mode().String() + "] "
+			return
+		}
+	}
+	return ""
 }
 
 // preparing and start tree
