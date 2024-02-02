@@ -15,9 +15,9 @@ import (
 
 // vriables for flags.
 var (
-	STARTDIRFLAG, DELIM    string
-	FLAGALL, MODE, DIRONLY bool
-	FILES, DIRS            int
+	STARTDIRFLAG, DELIM           string
+	FLAGALL, MODE, DIRONLY, FPATH bool
+	FILES, DIRS                   int
 )
 
 func checkOS() {
@@ -54,14 +54,34 @@ func outputBranch(separator *bytes.Buffer, name string, v os.DirEntry) {
 	ct.ResetColor()
 }
 
+// Performance of fullpath flag
+func abs(path string) (string, string) {
+	var nfiles string
+	ndirs := filepath.Base(path)
+	if FPATH {
+		nf, err := filepath.Abs(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		nd, err := filepath.Abs(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ndirs = nd
+		nfiles = nf
+	}
+	return nfiles, ndirs
+}
+
 func tree(path string) {
+	nfiles, ndirs := abs(path)
 	fs, _ := os.ReadDir(path)
 	var v os.DirEntry
 	// get spaces instead of full path
 	separator := buildBranch(path, v)
 	if filepath.Base(path) == "." {
 	} else {
-		outputBranch(separator, "|__ "+fmode(path)+filepath.Base(path), v)
+		outputBranch(separator, "|__ "+fmode(path)+ndirs, v)
 		// increment amount of directory
 		DIRS++
 	}
@@ -82,7 +102,7 @@ func tree(path string) {
 			// get spaces with separator instead of full path
 			// and single name of directory
 			separator = buildBranch(filepath.Join(path, v.Name()), v)
-			defer outputBranch(separator, "|__ "+fmode(v)+v.Name(), v)
+			defer outputBranch(separator, "|__ "+fmode(v)+filepath.Join(nfiles, v.Name()), v)
 			// increment amount of flags
 			FILES++
 		}
@@ -149,6 +169,7 @@ func init() {
 	root.Flags().BoolVarP(&FLAGALL, "all", "a", false, "use for see hidden dirs and files")
 	root.Flags().BoolVarP(&MODE, "mode", "m", false, "use for include file mode in the output")
 	root.Flags().BoolVarP(&DIRONLY, "dirs", "d", false, "use for out only directories")
+	root.Flags().BoolVarP(&FPATH, "fullpath", "f", false, "set for output full path")
 
 	root.Execute()
 }
