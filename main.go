@@ -55,7 +55,7 @@ func outputBranch(separator *bytes.Buffer, name string, v os.DirEntry) {
 }
 
 // Performance of fullpath flag
-func abs(path string) (string, string) {
+func showAbsPath(path string) (string, string) {
 	var nfiles string
 	ndirs := filepath.Base(path)
 	if FULLPATH {
@@ -74,14 +74,14 @@ func abs(path string) (string, string) {
 }
 
 func tree(path string) {
-	nfiles, ndirs := abs(path)
+	nfiles, ndirs := showAbsPath(path)
 	fs, _ := os.ReadDir(path)
 	var v os.DirEntry
 	// get spaces instead of full path
 	separator := buildBranch(path, v)
 	if filepath.Base(path) == "." {
 	} else {
-		outputBranch(separator, "|__ "+fmode(path)+ndirs, v)
+		outputBranch(separator, "|__ "+showPerms(path)+ndirs, v)
 		// increment amount of directory
 		DIRS++
 	}
@@ -102,14 +102,14 @@ func tree(path string) {
 			// get spaces with separator instead of full path
 			// and single name of directory
 			separator = buildBranch(filepath.Join(path, v.Name()), v)
-			defer outputBranch(separator, "|__ "+fmode(v)+filepath.Join(nfiles, v.Name()), v)
+			defer outputBranch(separator, "|__ "+showPerms(v)+filepath.Join(nfiles, v.Name()), v)
 			// increment amount of flags
 			FILES++
 		}
 	}
 }
 
-func fmode(v interface{}) (mode string) {
+func showPerms(v interface{}) (mode string) {
 	if PERMS {
 		switch T := v.(type) {
 		case os.DirEntry:
