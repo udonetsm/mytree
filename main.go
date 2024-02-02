@@ -15,9 +15,9 @@ import (
 
 // vriables for flags.
 var (
-	STARTDIRFLAG, DELIM string
-	FLAGALL             bool
-	FILES, DIRS         int
+	STARTDIRFLAG, DELIM    string
+	FLAGALL, MODE, DIRONLY bool
+	FILES, DIRS            int
 )
 
 func checkOS() {
@@ -29,18 +29,18 @@ func checkOS() {
 }
 
 // exchange full path for spaces and separator
-func buildBranch(path string) (*bytes.Buffer, string) {
+func buildBranch(path string, v os.DirEntry) *bytes.Buffer {
 	buffer := new(bytes.Buffer)
 	piecesOfPath := strings.Split(path, DELIM)
 	for i := 0; i < len(piecesOfPath)-1; i++ {
 		buffer.WriteString("|  ")
 	}
-	return buffer, path
+	return buffer
 }
 
 // the function shows new branch
 func outputBranch(separator *bytes.Buffer, name string, isDir bool) {
-	separator.WriteString("|___" + name)
+	separator.WriteString(name)
 	var color ct.Color
 	if isDir {
 		color = ct.Blue
@@ -55,10 +55,10 @@ func outputBranch(separator *bytes.Buffer, name string, isDir bool) {
 func tree(path string) {
 	fs, _ := os.ReadDir(path)
 	// get spaces instead of full path
-	separator, name := buildBranch(path)
-	if name == "." {
+	separator := buildBranch(path, nil)
+	if filepath.Base(path) == "." {
 	} else {
-		outputBranch(separator, name, true)
+		outputBranch(separator, "|__"+filepath.Base(path), true)
 		// increment amount of directory
 		DIRS++
 	}
@@ -71,12 +71,22 @@ func tree(path string) {
 			// if current element is a directory, should
 			// call this function recursively with path to the element.
 			tree(filepath.Join(path, v.Name()))
+		} else if DIRONLY {
+			continue
 		} else {
+			var mode string
+			if MODE {
+				file, err := v.Info()
+				if err != nil {
+					log.Fatal(err)
+				}
+				mode = "[" + file.Mode().String() + "]"
+			}
 			// if current element is a regular file, should
 			// get spaces with separator instead of full path
 			// and single name of directory
-			separator, name := buildBranch(filepath.Join(path, v.Name()))
-			defer outputBranch(separator, name, false)
+			separator = buildBranch(filepath.Join(path, v.Name()), v)
+			defer outputBranch(separator, "|__"+mode+v.Name(), false)
 			// increment amount of flags
 			FILES++
 		}
@@ -111,6 +121,9 @@ func init() {
 	// get flags or set default if it's upset
 	root.Flags().StringVarP(&STARTDIRFLAG, "path", "p", home, "set path to build tree")
 	root.Flags().BoolVarP(&FLAGALL, "all", "a", false, "use for see hidden dirs and files")
+	root.Flags().BoolVarP(&MODE, "mode", "m", false, "use for include file mode in the output")
+	root.Flags().BoolVarP(&DIRONLY, "dirs", "d", false, "use for out only directories")
+
 	root.Execute()
 }
 
